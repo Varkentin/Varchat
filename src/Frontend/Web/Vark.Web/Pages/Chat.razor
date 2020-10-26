@@ -1,23 +1,41 @@
 ﻿@page "/"
 @using Var.Protos
+@using Grpc.Core
 
 @inject Greeter.GreeterClient GreeterClient
 
-<h2>@_message</h2>
+
+<div style="height: 50vh; overflow-y:auto">
+
+    @foreach (var message in _messages)
+    {
+        <h2>@message</h2>
+    }
+
+
+
+</div>
+
 
 @code
 {
 
-    private string _message;
+    private List<string> _messages = new List<string>();
 
     protected override async Task OnInitializedAsync()
     {
-        var responce = await GreeterClient.SayHelloAsync(new HelloRequest
-        {
-            Name = "1111111111"
-        });
 
-        _message = responce.Message;
+
+        using (var serverStream = GreeterClient.JoinChat(new HelloRequest()))
+        {
+            var stream = serverStream.ResponseStream;
+            await foreach (var message in stream.ReadAllAsync())
+            {
+                _messages.Add(message.Message);
+                this.StateHasChanged();
+            }
+        }
     }
+
 
 } 
