@@ -1,15 +1,9 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="sidebar">
-    <NavMenu />
-</div>
 
-<div class="main">
-    <div class="top-row px-4">
-        <a href="http://blazor.net" target="_blank" class="ml-md-auto">About</a>
-    </div>
+<div style="display: grid; grid-template-columns: fr auto fr; grid-template-rows: fr auto fr; width: 100vw; height: 100vh">
 
-    <div class="content px-4">
+    <div style="grid-column: 2; grid-row: 2">
         @Body
     </div>
 </div>

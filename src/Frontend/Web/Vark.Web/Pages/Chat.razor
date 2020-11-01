@@ -1,17 +1,31 @@
 ﻿@page "/"
 @using Var.Protos
 @using Grpc.Core
+@using System.Threading
 
 @inject Greeter.GreeterClient GreeterClient
+@inject NavigationManager NavigationManager
 
 
-<div style="height: 50vh; overflow-y:auto">
+<div style="height: 80vh; width: 50vw;">
 
-    @foreach (var message in _messages)
-    {
-        <h2>@message</h2>
-    }
+    <div RowDefinitions="* auto">
 
+        <div Row="1"
+                   VerticalAlignment="VerticalAlignment.Bottom"
+                   style="overflow-y: auto; max-height: 100%">
+        
+        </div>
+
+        <div Row="2">
+            <RadzenTextArea Placeholder=""
+                            @bind-Value="_message"
+                            Style="margin-bottom: 20px; width: 100%" />
+           
+        </div>
+
+
+    </div>
 
 
 </div>
@@ -20,22 +34,46 @@
 @code
 {
 
-    private List<string> _messages = new List<string>();
+    private readonly List<string> _messages = new List<string>();
+
+    private string _message;
+
+    private readonly CancellationTokenSource _cancelTokenSource = new CancellationTokenSource();
 
     protected override async Task OnInitializedAsync()
     {
+        NavigationManager.LocationChanged += NavigationManagerOnLocationChanged;
 
+        var serverStream = GreeterClient.JoinChat(new HelloRequest(), cancellationToken: _cancelTokenSource.Token);
+        var stream = serverStream.ResponseStream;
 
-        using (var serverStream = GreeterClient.JoinChat(new HelloRequest()))
+        try
         {
-            var stream = serverStream.ResponseStream;
-            await foreach (var message in stream.ReadAllAsync())
+            await foreach (var message in stream.ReadAllAsync(_cancelTokenSource.Token))
             {
                 _messages.Add(message.Message);
                 this.StateHasChanged();
             }
         }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+        }
+        finally
+        {
+            serverStream.Dispose();
+        }
+    }
+
+    private void NavigationManagerOnLocationChanged(object sender, LocationChangedEventArgs e)
+    {
+        Dispose();
+    }
+
+    public void Dispose()
+    {
+        _cancelTokenSource.Cancel();
     }
 
 
-} 
+}
